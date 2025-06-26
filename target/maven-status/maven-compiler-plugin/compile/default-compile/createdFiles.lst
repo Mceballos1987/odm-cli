@@ -1,0 +1,4 @@
+com\mceballos\odmcli\OdmCli.class
+com\mceballos\odmcli\OdmCli$ReportCommand.class
+com\mceballos\odmcli\OdmCli$DeployCommand.class
+com\mceballos\odmcli\OdmCli$TestCommand.class

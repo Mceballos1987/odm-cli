@@ -1,0 +1,58 @@
+# src/main/resources/odm-config.yaml
+odm:
+  environments:
+    # Lower Regions Group
+    lower_regions:
+      SYSI:
+        url: https://odm-sysi.example.com/res
+        username: sysi_user
+        password: sysi_password_secure
+      QA:
+        url: https://odm-qa.example.com/res
+        username: qa_user
+        password: qa_password_secure
+      "DOD QA": # Use quotes for keys with spaces
+        url: https://odm-dodqa.example.com/res
+        username: dodqa_user
+        password: dodqa_password_secure
+      REGR:
+        url: https://odm-regr.example.com/res
+        username: regr_user
+        password: regr_password_secure
+      UAT:
+        url: https://odm-uat.example.com/res
+        username: uat_user
+        password: uat_password_secure
+      MAINT:
+        url: https://odm-maint.example.com/res
+        username: maint_user
+        password: maint_password_secure
+
+    # Production Regions Group
+    production_regions:
+      PRD:
+        url: https://odm-prd.example.com/res
+        username: prd_user
+        password: prd_password_secure
+      "DOD PRD":
+        url: https://odm-dodprd.example.com/res
+        username: dodprd_user
+        password: dodprd_password_secure
+      CTE:
+        url: https://odm-cte.example.com/res
+        username: cte_user
+        password: cte_password_secure
+      "POST PROD":
+        url: https://odm-postprod.example.com/res
+        username: postprod_user
+        password: postprod_password_secure
+      "DODTESTPOINTTOPROD":
+        url: https://odm-dodtest.example.com/res
+        username: dodtest_user
+        password: dodtest_password_secure
+
+    # Default server (optional, for convenience)
+    default:
+      url: https://odm-dev.example.com/res
+      username: dev_user
+      password: dev_password_secure
