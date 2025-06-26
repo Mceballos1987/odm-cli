@@ -1,58 +1,74 @@
 # src/main/resources/odm-config.yaml
-odm:
-  environments:
-    # Lower Regions Group
-    lower_regions:
+# Fixed structure to match OdmConfig Java class
+
+environments:
+  # Lower Regions Group
+  lower_regions:
+    servers:
       SYSI:
         url: https://odm-sysi.example.com/res
-        username: sysi_user
-        password: sysi_password_secure
+        username: ${ODM_SYSI_USER:-sysi_user}
+        password: ${ODM_SYSI_PASS:-sysi_password_secure}
       QA:
         url: https://odm-qa.example.com/res
-        username: qa_user
-        password: qa_password_secure
+        username: ${ODM_QA_USER:-qa_user}
+        password: ${ODM_QA_PASS:-qa_password_secure}
       "DOD QA": # Use quotes for keys with spaces
         url: https://odm-dodqa.example.com/res
-        username: dodqa_user
-        password: dodqa_password_secure
+        username: ${ODM_DODQA_USER:-dodqa_user}
+        password: ${ODM_DODQA_PASS:-dodqa_password_secure}
       REGR:
         url: https://odm-regr.example.com/res
-        username: regr_user
-        password: regr_password_secure
+        username: ${ODM_REGR_USER:-regr_user}
+        password: ${ODM_REGR_PASS:-regr_password_secure}
       UAT:
         url: https://odm-uat.example.com/res
-        username: uat_user
-        password: uat_password_secure
+        username: ${ODM_UAT_USER:-uat_user}
+        password: ${ODM_UAT_PASS:-uat_password_secure}
       MAINT:
         url: https://odm-maint.example.com/res
-        username: maint_user
-        password: maint_password_secure
+        username: ${ODM_MAINT_USER:-maint_user}
+        password: ${ODM_MAINT_PASS:-maint_password_secure}
 
-    # Production Regions Group
-    production_regions:
+  # Production Regions Group
+  production_regions:
+    servers:
       PRD:
         url: https://odm-prd.example.com/res
-        username: prd_user
-        password: prd_password_secure
+        username: ${ODM_PRD_USER:-prd_user}
+        password: ${ODM_PRD_PASS:-prd_password_secure}
       "DOD PRD":
         url: https://odm-dodprd.example.com/res
-        username: dodprd_user
-        password: dodprd_password_secure
+        username: ${ODM_DODPRD_USER:-dodprd_user}
+        password: ${ODM_DODPRD_PASS:-dodprd_password_secure}
       CTE:
         url: https://odm-cte.example.com/res
-        username: cte_user
-        password: cte_password_secure
+        username: ${ODM_CTE_USER:-cte_user}
+        password: ${ODM_CTE_PASS:-cte_password_secure}
       "POST PROD":
         url: https://odm-postprod.example.com/res
-        username: postprod_user
-        password: postprod_password_secure
+        username: ${ODM_POSTPROD_USER:-postprod_user}
+        password: ${ODM_POSTPROD_PASS:-postprod_password_secure}
       "DODTESTPOINTTOPROD":
         url: https://odm-dodtest.example.com/res
-        username: dodtest_user
-        password: dodtest_password_secure
+        username: ${ODM_DODTEST_USER:-dodtest_user}
+        password: ${ODM_DODTEST_PASS:-dodtest_password_secure}
 
-    # Default server (optional, for convenience)
-    default:
-      url: https://odm-dev.example.com/res
-      username: dev_user
-      password: dev_password_secure
+# Default server (optional, for convenience)
+defaultServer:
+  url: ${ODM_DEFAULT_URL:-https://odm-dev.example.com/res}
+  username: ${ODM_DEFAULT_USER:-dev_user}
+  password: ${ODM_DEFAULT_PASS:-dev_password_secure}
+
+# Notes:
+# - Environment variables use ${VAR_NAME:-default_value} syntax
+# - Set your credentials as environment variables:
+#   export ODM_QA_USER="your_username"
+#   export ODM_QA_PASS="your_password"
+# 
+# Configuration file locations (in order of precedence):
+# 1. Explicit path: --config /path/to/config.yaml
+# 2. Environment variable: ODM_CONFIG_PATH=/path/to/config.yaml
+# 3. User home: ~/.odm/odm-config.yaml
+# 4. Current directory: ./odm-config.yaml
+# 5. Classpath: src/main/resources/odm-config.yaml
