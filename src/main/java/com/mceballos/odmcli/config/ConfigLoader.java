@@ -3,23 +3,25 @@ package com.mceballos.odmcli.config;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.LoaderOptions;
 
 import java.io.InputStream;
 import java.util.Optional;
 
 public class ConfigLoader {
-
+    
     private static OdmConfig odmConfig;
-
+    
     private ConfigLoader() {
         // Private constructor to prevent instantiation
     }
-
+    
     public static synchronized OdmConfig loadConfig() {
         if (odmConfig == null) {
-            Yaml yaml = new Yaml(new Constructor(OdmConfig.class));
+            LoaderOptions loaderOptions = new LoaderOptions();
+            Yaml yaml = new Yaml(new Constructor(OdmConfig.class, loaderOptions));
             try (InputStream inputStream = ConfigLoader.class.getClassLoader()
-                    .getResourceAsStream("odm-config.yaml")) {
+            .getResourceAsStream("odm-config.yaml")) {
                 if (inputStream == null) {
                     throw new IllegalStateException("odm-config.yaml not found in classpath.");
                 }

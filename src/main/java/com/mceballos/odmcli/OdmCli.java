@@ -1,12 +1,19 @@
-// src/main/java/com/mycompany/odmcli/OdmCli.java
+// src/main/java/com/mceballos/odmcli/OdmCli.java
 package com.mceballos.odmcli;
 
+import com.mceballos.odmcli.config.ConfigLoader;
+import com.mceballos.odmcli.config.OdmServerConfig;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Spec;
+import picocli.CommandLine.ParentCommand;
+
 
 import java.io.File;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -15,8 +22,8 @@ import java.util.concurrent.Callable;
  */
 @Command(name = "odm-cli",
          mixinStandardHelpOptions = true,
-         version = "odm-cli 0.0.1",
-         description = "A custom built command-line tool for IBM ODM operations.",
+         version = "odm-cli 1.0.0",
+         description = "A command-line tool for IBM ODM operations.",
          subcommands = {
              OdmCli.TestCommand.class,
              OdmCli.DeployCommand.class,
@@ -24,29 +31,71 @@ import java.util.concurrent.Callable;
          })
 public class OdmCli implements Callable<Integer> {
 
-    @Option(names = {"-u", "--url"}, description = "URL of the ODM Decision Center or Decision Server.")
-    private String odmUrl;
+    @Spec
+    CommandSpec spec; // Injected by Picocli
 
-    @Option(names = {"-usr", "--username"}, description = "Username for ODM authentication.")
-    private String username;
+    // Common options for all commands (inherited by subcommands)
+    @Option(names = {"-e", "--env"},
+            description = "Environment/Server to target (e.g., 'QA', 'PRD', 'lower_regions:SYSI', 'production_regions:PRD'). " +
+                          "If only a group name is given (e.g., 'lower_regions'), the first server in that group will be used. " +
+                          "If omitted, 'default' server from config will be used.",
+            paramLabel = "GROUP[:SERVER_NAME]")
+    private String environmentTarget; // This will hold "QA" or "lower_regions:SYSI"
 
-    @Option(names = {"-p", "--password"}, description = "Password for ODM authentication.")
-    private String password;
+    // Removed direct -u, -usr, -p options as they will be loaded from config
+    // @Option(names = {"-u", "--url"}, description = "URL of the ODM Decision Center or Decision Server.")
+    // private String odmUrl;
+    // ...
+
+    private OdmServerConfig currentServerConfig; // Resolved server config for the current command
 
     public static void main(String[] args) {
-        // Picocli handles parsing and executing the commands
         int exitCode = new CommandLine(new OdmCli()).execute(args);
         System.exit(exitCode);
     }
 
     @Override
     public Integer call() throws Exception {
-        // This method is called if no subcommand is specified,
-        // or if the main command has its own logic.
-        // For a subcommands-based CLI, it might just print help.
         System.out.println("Welcome to ODM CLI! Use 'odm-cli --help' for available commands.");
         return 0; // Success
     }
+
+    // Method to resolve server config based on the provided environmentTarget
+    // This will be called by each subcommand
+    private OdmServerConfig resolveServerConfig() {
+        if (currentServerConfig != null) {
+            return currentServerConfig; // Already resolved
+        }
+
+        String groupName = null;
+        String serverName = null;
+
+        if (environmentTarget != null && !environmentTarget.isEmpty()) {
+            String[] parts = environmentTarget.split(":");
+            groupName = parts[0];
+            if (parts.length > 1) {
+                serverName = parts[1];
+            }
+        } else {
+            // No --env specified, try to use "default" from config
+            groupName = "default";
+        }
+
+        Optional<OdmServerConfig> resolvedConfig = ConfigLoader.resolveServerConfig(groupName, serverName);
+
+        if (resolvedConfig.isPresent()) {
+            this.currentServerConfig = resolvedConfig.get();
+            System.out.println("Targeting ODM server: " + this.currentServerConfig.getUrl());
+            // TODO: In a real app, you'd use username/password for authentication
+            // System.out.println("Username: " + this.currentServerConfig.getUsername()); // For debugging, remove in prod
+            return this.currentServerConfig;
+        } else {
+            throw new CommandLine.ParameterException(spec.commandLine(),
+                    String.format("Environment/server '%s' not found in configuration. " +
+                                  "Please check 'odm-config.yaml' or specify a valid target.", environmentTarget != null ? environmentTarget : "default"));
+        }
+    }
+
 
     /**
      * Subcommand for testing rule applications or rule sets.
@@ -54,6 +103,9 @@ public class OdmCli implements Callable<Integer> {
     @Command(name = "test",
              description = "Tests a rule application or rule set against provided data.")
     static class TestCommand implements Callable<Integer> {
+
+        @ParentCommand
+        OdmCli parent; // Injected by Picocli to access parent command's fields
 
         @Parameters(index = "0", description = "Type of test (e.g., 'ruleapp', 'ruleset', 'scenario').")
         private String testType;
@@ -69,20 +121,18 @@ public class OdmCli implements Callable<Integer> {
 
         @Override
         public Integer call() throws Exception {
-            System.out.printf("Running %s test for '%s' with data from '%s'...\n",
-                    testType, identifier, dataFile.getAbsolutePath());
+            OdmServerConfig serverConfig = parent.resolveServerConfig(); // Resolve server config
+
+            System.out.printf("Running %s test for '%s' on %s with data from '%s'...\n",
+                    testType, identifier, serverConfig.getUrl(), dataFile.getAbsolutePath());
 
             // TODO:
-            // 1. Initialize ODM client using parent command's common options (odmUrl, username, password).
-            //    You can get parent command options using @ParentCommand annotation on a field.
+            // 1. Use serverConfig.getUrl(), serverConfig.getUsername(), serverConfig.getPassword()
+            //    to authenticate and connect to the specific ODM RES server.
             // 2. Load and parse the input data from dataFile.
             // 3. Invoke ODM Decision Server to execute the rule app/set.
-            //    This might involve:
-            //    - Using the IBM ODM Java Client API.
-            //    - Making REST calls to Decision Server's decision service endpoint.
             // 4. Process the execution results.
             // 5. Generate a testing report in the specified reportFormat.
-            //    This might involve using templating engines or dedicated report libraries.
             // 6. Print success/failure status and report path.
 
             System.out.println("Test simulation complete. (Integration logic to be added here)");
@@ -97,32 +147,30 @@ public class OdmCli implements Callable<Integer> {
              description = "Deploys a rule application to ODM Decision Center or Decision Server.")
     static class DeployCommand implements Callable<Integer> {
 
+        @ParentCommand
+        OdmCli parent;
+
         @Parameters(index = "0", description = "Path to the RuleApp archive (.jar file) or project source.")
         private File ruleAppPath;
 
-        @Option(names = {"-env", "--environment"}, description = "Deployment environment (e.g., 'dev', 'qa', 'prod').")
-        private String environment;
+        @Option(names = {"-env", "--environment-alias"}, description = "Deployment target alias (e.g., 'dev', 'qa', 'prod').")
+        private String environmentAlias; // Renamed to avoid clash with --env option
 
         @Option(names = {"--force"}, description = "Force deployment, overwriting existing versions.")
         private boolean force;
 
         @Override
         public Integer call() throws Exception {
-            System.out.printf("Deploying '%s' to environment '%s' (Force: %b)...\n",
-                    ruleAppPath.getAbsolutePath(), environment, force);
+            OdmServerConfig serverConfig = parent.resolveServerConfig(); // Resolve server config
+
+            System.out.printf("Deploying '%s' to environment '%s' on %s (Force: %b)...\n",
+                    ruleAppPath.getAbsolutePath(), environmentAlias, serverConfig.getUrl(), force);
 
             // TODO:
-            // 1. Initialize ODM client (if deploying via ODM APIs).
-            // 2. Validate the build using Maven:
-            //    - Programmatically invoke Maven goals (e.g., 'mvn clean install' on the ruleAppPath).
-            //    - Use Maven API if direct programmatic control is needed, or just run a new Process.
-            // 3. Integrate with Eclipse plug-ins for validation:
-            //    - This is the trickiest part. Direct programmatic interaction with Eclipse UI plugins
-            //      is very complex. You might instead leverage headless build capabilities,
-            //      or specific validation steps provided by ODM's build tools (often Maven-based).
-            // 4. Perform the actual deployment:
-            //    - Using ODM Decision Center API for rule management.
-            //    - Using ODM Decision Server API for deploying to runtime.
+            // 1. Use serverConfig.getUrl(), username, password for ODM interactions.
+            // 2. Validate the build using Maven (programmatically or via ProcessBuilder).
+            // 3. Integrate with Eclipse plug-ins for validation (if applicable).
+            // 4. Perform the actual deployment using ODM APIs.
             // 5. Generate a deployment report.
 
             System.out.println("Deployment simulation complete. (Integration logic to be added here)");
@@ -137,6 +185,9 @@ public class OdmCli implements Callable<Integer> {
              description = "Generates various reports (e.g., deployment, testing summary).")
     static class ReportCommand implements Callable<Integer> {
 
+        @ParentCommand
+        OdmCli parent;
+
         @Parameters(index = "0", description = "Type of report to generate (e.g., 'deployment-summary', 'test-summary', 'impact-analysis').")
         private String reportType;
 
@@ -148,19 +199,14 @@ public class OdmCli implements Callable<Integer> {
 
         @Override
         public Integer call() throws Exception {
-            System.out.printf("Generating '%s' report in '%s' format to '%s'...\n",
-                    reportType, format, outputDir.getAbsolutePath());
+            OdmServerConfig serverConfig = parent.resolveServerConfig(); // Resolve server config
+
+            System.out.printf("Generating '%s' report in '%s' format to '%s' using %s...\n",
+                    reportType, format, outputDir.getAbsolutePath(), serverConfig.getUrl());
 
             // TODO:
-            // 1. Collect data based on reportType:
-            //    - For deployment reports: query ODM Decision Center for deployment history,
-            //      or parse logs from previous deploy commands.
-            //    - For testing reports: aggregate results from previous 'test' runs, or
-            //      re-run tests and generate a summary.
-            //    - For impact analysis: This would be a more advanced feature, likely
-            //      requiring querying ODM's rule model.
-            // 2. Process and format the data using a reporting library (e.g., Apache POI for Excel,
-            //    iText for PDF, or a templating engine for HTML).
+            // 1. Collect data based on reportType from ODM using serverConfig.
+            // 2. Process and format the data using a reporting library.
             // 3. Save the report to the outputDir.
 
             System.out.println("Report generation simulation complete. (Integration logic to be added here)");
