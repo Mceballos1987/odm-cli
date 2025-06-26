@@ -22,7 +22,7 @@ import java.util.concurrent.Callable;
  */
 @Command(name = "odm-cli",
          mixinStandardHelpOptions = true,
-         version = "odm-cli 1.0.0",
+         version = "odm-cli 0.0.1",
          description = "A command-line tool for IBM ODM operations.",
          subcommands = {
              OdmCli.TestCommand.class,
